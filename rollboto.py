@@ -107,7 +107,7 @@ async def on_ready():
 @client.event
 async def on_message(message):
     command = deque(message.content.split(" "))
-    if len(command) > 0 and command[0] == "<@"+client.user.id+">":
+    if len(command) > 0 and command[0] == "<@"+client.user.id+">" or command[0] == "<@!"+client.user.id+">":
         command.popleft()
         await commandStructure(command, message)
 
