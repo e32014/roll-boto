@@ -6,25 +6,51 @@ from collections import deque
 
 client = discord.Client()
 
-def commandStructure( commandStack ):
+async def commandStructure( commandStack, message ):
     if len(commandStack) > 0:
         command = commandStack.popleft()   
         if command == "test":
-            return "This is a test alert of the emergency system", 0        
+            await client.send_message(message.channel, "This is a test alert of the emergency system")      
         elif command == "roll":
-            return rollCommand( commandStack, 0 )
+            await client.send_message(message.channel, rollCommand( commandStack, 0 ))
+        elif command == "nickname":
+            if message.server == None:
+                await client.send_message(message.channel, "Cannot edit nicknames in a PM")
+                return
+            memberId = commandStack.popleft()
+            mentions = message.mentions
+            
+            mentions.remove(message.server.me)
+            if len(mentions) == 0:
+                await client.send_message(message.channel, "Cannot nickname anyone, no target given")
+                return
+            elif len(mentions) > 1:
+                await client.send_message(message.channel, "Too many people specified, I've become confused")
+                return
+
+            member = mentions[0]
+            if len(commandStack) == 0:
+                await client.change_nickname( member, None )
+                await client.send_message(message.channel, "Clearing nickname")
+                return
+            
+            nickname = " ".join(commandStack)
+            await client.change_nickname( member, nickname )
+            await client.send_message(message.channel, "Successfully updated nickname")
         elif re.match("^\d+d\d+$", command):
-            message, tot = roll(command)
+            mess, tot = roll(command)
             if tot == -1:
-                return message, -1
+                await client.send_message(message.channel, mess)
+                return
             contMess, error = rollCommand( commandStack, tot )
             if error == -1:
-                return contMess, -1
-            return message + contMess, 0
+                await client.send_message(message.channel, contMess)
+                return
+            await client.send_message(message.channel,  mess + contMess)
         else:
-            return "Not a valid command", -1
+            await client.send_message(message.channel, "Not a valid command")
     else:
-        return "Hello, I am " + client.user.name + " and I roll dice. Enter a roll using either `#d#` or `roll #d#`", 0
+        await client.send_message(message.channel, "Hello, I am " + client.user.name + " and I roll dice. Enter a roll using either `#d#` or `roll #d#`")
 
 def rollCommand( commandStack, currTotal ):
     if len( commandStack ) > 0:
@@ -48,7 +74,7 @@ def roll(command):
     if not re.match("^\d+d\d+$", command):
         message = "Invalid input"
         return message, -1
-    comm = command.split("d");
+    comm = command.split("d")
     howMany = int(comm[0])
     howLarge = int(comm[1])
     if howMany == 0:
@@ -62,7 +88,7 @@ def roll(command):
     elif howLarge > 200:
         return "Invalid Input, dice with more than 200 sides might as well be spheres", -1
     
-    total = 0;
+    total = 0
     message += "With **" + command + "**, you rolled a "
     for i in range(0, howMany):
         output = random.randint(1, howLarge)
@@ -87,10 +113,10 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    command = deque(message.content.split(" "));
+    command = deque(message.content.split(" "))
     if len(command) > 0 and command[0] == "<@"+client.user.id+">":
         command.popleft()
-        await client.send_message(message.channel, commandStructure(command)[0] );
+        await commandStructure(command, message)
 
 f = open('api.key', 'r')
 client.run(f.readline().strip())
