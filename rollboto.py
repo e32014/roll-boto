@@ -18,17 +18,10 @@ async def commandStructure( commandStack, message ):
                 await client.send_message(message.channel, "Cannot edit nicknames in a PM")
                 return
             memberId = commandStack.popleft()
-            mentions = message.mentions
-            
-            mentions.remove(message.server.me)
-            if len(mentions) == 0:
-                await client.send_message(message.channel, "Cannot nickname anyone, no target given")
-                return
-            elif len(mentions) > 1:
-                await client.send_message(message.channel, "Too many people specified, I've become confused")
-                return
-
-            member = mentions[0]
+            memberId = memberId[2:-1]
+            if memberId[0] == '!':
+                memberId = memberId[1:]
+            member = message.server.get_member(memberId) 
             if len(commandStack) == 0:
                 await client.change_nickname( member, None )
                 await client.send_message(message.channel, "Clearing nickname")
