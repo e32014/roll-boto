@@ -96,10 +96,11 @@ async def commandStructure( commandStack, message ):
                 'quiet' : True
             }
             
+            beforeArgs = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
             if state.voice is None:
                 await client.send_message( message.channel, "Please `summon` me first" )
                 return
-            player = await state.voice.create_ytdl_player(commandStack.popleft(), ytdl_options = opts, after=state.toggle_next)
+            player = await state.voice.create_ytdl_player(commandStack.popleft(), ytdl_options = opts, after=state.toggle_next, before_options = beforeArgs)
             player.volume = .25
             entry = MusicEntry( player )
             await state.songs.put( entry )
@@ -146,6 +147,20 @@ async def commandStructure( commandStack, message ):
             if not state.is_playing():
                 await client.send_message(message.channel, "Can't skip nothing")
             state.skip()
+        
+        elif command == "volume":
+            state = get_voice_state( message.server )
+            volume = commandStack.popleft()
+            try:
+                vol_int = int(volume)
+                if(vol_int < 0 or vol_int > 100):
+                    await client.send_message(message.channel, "Invalid audio levels")
+                    return
+                state.player().volume = vol_int/100
+            except ValueError:
+                await client.send_message(message.channel, "Invalid input")
+                return
+
         elif re.match("^\d+d\d+$", command):
             mess, tot = roll(command)
             if tot == -1:
